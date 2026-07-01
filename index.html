@@ -84,7 +84,6 @@
   .device-wrap{position:absolute;left:50%;top:46%;width:300px;height:175px;
     margin:-87px 0 0 -150px;transform-style:preserve-3d;
     transition:transform 1s cubic-bezier(.16,1,.3,1)}
-  .stage.exploded .device-wrap{transform:translateX(-130px)}
   .device{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform;
     transform:rotateX(-18deg) rotateY(-28deg)}
   .slab{position:absolute;inset:0;transform-style:preserve-3d;
@@ -138,37 +137,16 @@
     display:flex;align-items:center;padding:0 6px}
   .cell b{display:block;height:26px;border-radius:3px;background:linear-gradient(90deg,var(--cyan),#2ba38f)}
 
-  /* exploded state */
-  .device.exploded .slab{transition:transform 1s cubic-bezier(.16,1,.3,1)}
+  /* slab stacking (solid device) */
   .device .s1{transform:translateZ(45px)}
   .device .s2{transform:translateZ(15px)}
   .device .s3{transform:translateZ(-15px)}
   .device .s4{transform:translateZ(-45px)}
-  .device.exploded .s1{transform:translateZ(210px)}
-  .device.exploded .s2{transform:translateZ(70px)}
-  .device.exploded .s3{transform:translateZ(-70px)}
-  .device.exploded .s4{transform:translateZ(-210px)}
 
-  /* stage controls + captions */
+  /* stage caption */
   .stage-ui{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;
     align-items:center;justify-content:center;gap:14px;pointer-events:none}
-  .toggle{pointer-events:auto;font-family:var(--fm);font-size:12px;letter-spacing:1.5px;color:var(--white);
-    background:rgba(8,11,15,.72);border:1px solid var(--line-2);border-radius:9px;padding:10px 18px;
-    cursor:pointer;display:inline-flex;gap:10px;align-items:center;transition:border-color .2s,color .2s}
-  .toggle:hover{border-color:var(--cyan);color:var(--cyan)}
-  .toggle .ic{width:14px;height:14px}
   .hint{font-family:var(--fm);font-size:10.5px;letter-spacing:1.5px;color:var(--grey-2)}
-
-  /* exploded legend */
-  .legend{position:absolute;top:50%;right:2%;transform:translateY(-50%);z-index:6;
-    display:flex;flex-direction:column;gap:14px;opacity:0;pointer-events:none;transition:opacity .5s ease .3s;
-    text-align:left}
-  .stage.exploded .legend{opacity:1}
-  .leg{display:flex;gap:12px;align-items:flex-start}
-  .leg .ix{font-family:var(--fm);font-size:11px;color:var(--cyan);letter-spacing:1px;padding-top:2px;min-width:20px}
-  .leg .nm{display:block;font-family:var(--fd);font-weight:500;font-size:14px;color:var(--white)}
-  .leg .ds{display:block;font-family:var(--fm);font-size:10px;letter-spacing:.5px;color:var(--grey-2);margin-top:3px}
-  .stage.exploded .floor-glow,.stage.exploded .shadow{opacity:.35}
 
   /* recent wins strip */
   .wins{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:34px}
@@ -276,8 +254,6 @@
     .wrap,nav{padding-left:20px;padding-right:20px}
     .stage{height:360px}
     .device-wrap{transform:scale(.72)}
-    .stage.exploded .device-wrap{transform:scale(.5)}
-    .legend{display:none}
   }
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important}
@@ -365,19 +341,7 @@
     </div>
     </div>
 
-    <!-- exploded legend -->
-    <div class="legend">
-      <div class="leg"><span class="ix">01</span><span><span class="nm">Top shell</span><span class="ds">SEALED ABS · VENT ARRAY</span></span></div>
-      <div class="leg"><span class="ix">02</span><span><span class="nm">Custom PCB</span><span class="ds">TEMP · HUMIDITY · GAS</span></span></div>
-      <div class="leg"><span class="ix">03</span><span><span class="nm">Battery pack</span><span class="ds">Li-ion · MULTI-YEAR</span></span></div>
-      <div class="leg"><span class="ix">04</span><span><span class="nm">Base + plug</span><span class="ds">NO-INSTALL MOUNT</span></span></div>
-    </div>
-
     <div class="stage-ui">
-      <button class="toggle" id="explodeBtn">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
-        <span class="lbl">EXPLODE</span>
-      </button>
       <span class="hint">DRAG&nbsp;OR&nbsp;HOVER&nbsp;TO&nbsp;ROTATE</span>
     </div>
   </div>
@@ -548,11 +512,10 @@
   // ---- 3D device rotation ----
   const stage=document.getElementById('stage');
   const device=document.getElementById('device');
-  const btn=document.getElementById('explodeBtn');
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let ry=-28, rx=-18, targetPX=0, targetPY=0, px=0, py=0;
-  let spinning=!reduce, exploded=false, dragging=false, lastX=0, raf=null;
+  let spinning=!reduce, dragging=false, lastX=0, raf=null;
 
   function apply(){ device.style.transform=`rotateX(${rx+py}deg) rotateY(${ry+px}deg)`; }
   function loop(){ if(!spinning){raf=null;return;}
@@ -565,7 +528,7 @@
 
   // mouse parallax
   stage.addEventListener('mousemove',e=>{
-    if(exploded||dragging) return;
+    if(dragging) return;
     const r=stage.getBoundingClientRect();
     targetPX=((e.clientX-r.left)/r.width-0.5)*26;
     targetPY=-((e.clientY-r.top)/r.height-0.5)*14;
@@ -573,27 +536,10 @@
   stage.addEventListener('mouseleave',()=>{targetPX=0;targetPY=0;});
 
   // drag to rotate
-  stage.addEventListener('pointerdown',e=>{ if(exploded)return; dragging=true; lastX=e.clientX; spinning=false; stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener('pointerdown',e=>{ dragging=true; lastX=e.clientX; spinning=false; stage.setPointerCapture(e.pointerId); });
   stage.addEventListener('pointermove',e=>{ if(!dragging)return; ry+=(e.clientX-lastX)*0.4; lastX=e.clientX; apply(); });
-  function endDrag(){ if(!dragging)return; dragging=false; if(!exploded&&!reduce){spinning=true;startSpin();} }
+  function endDrag(){ if(!dragging)return; dragging=false; if(!reduce){spinning=true;startSpin();} }
   stage.addEventListener('pointerup',endDrag); stage.addEventListener('pointercancel',endDrag);
-
-  // explode toggle
-  function setExploded(on){
-    exploded=on;
-    device.classList.toggle('exploded',on);
-    stage.classList.toggle('exploded',on);
-    btn.querySelector('.lbl').textContent = on?'ASSEMBLE':'EXPLODE';
-    if(on){
-      spinning=false; targetPX=0; targetPY=0; px=0; py=0;
-      device.style.transition='transform 1s cubic-bezier(.16,1,.3,1)';
-      rx=-20; ry=-34; apply();
-    }else{
-      rx=-18; ry=-34;
-      setTimeout(()=>{ device.style.transition=''; if(!reduce){spinning=true;startSpin();} },700);
-    }
-  }
-  btn.addEventListener('click',()=>setExploded(!exploded));
 </script>
 </body>
 </html>

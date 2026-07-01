@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vex · Predictive mould detection</title>
+<meta name="description" content="A battery-powered sensor that detects mould before it forms. Predictive monitoring for UK rental housing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05070A; --bg-2:#080B0F; --panel:#0D1116; --panel-2:#11161C;
+    --line:#1B2229; --line-2:#28313B;
+    --white:#F5F7FA; --grey:#93A0AD; --grey-2:#5A6673;
+    --cyan:#45E8D0; --cyan-glow:rgba(69,232,208,.5); --cyan-dim:rgba(69,232,208,.12);
+    --amber:#FF9E4C;
+    --fd:"Space Grotesk",system-ui,sans-serif;
+    --fb:"Inter",system-ui,sans-serif;
+    --fm:"Space Mono",ui-monospace,monospace;
+    --maxw:1200px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--white);font-family:var(--fb);line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:var(--cyan);color:#04140F}
+  h1,h2,h3{font-family:var(--fd);font-weight:600;line-height:1.04;letter-spacing:-.02em}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 34px}
+  .eyebrow{font-family:var(--fm);font-size:11.5px;letter-spacing:3.5px;text-transform:uppercase;
+    color:var(--cyan);display:inline-flex;align-items:center;gap:11px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--cyan);opacity:.6}
+  .btn{font-family:var(--fb);font-weight:500;font-size:14px;cursor:pointer;border:0;border-radius:9px;
+    padding:12px 22px;transition:transform .15s,box-shadow .25s,background .2s,border-color .2s;
+    display:inline-flex;align-items:center;gap:9px}
+  .btn svg{width:15px;height:15px}
+  .btn-primary{background:var(--cyan);color:#04140F}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 34px var(--cyan-glow)}
+  .btn-ghost{background:transparent;color:var(--white);border:1px solid var(--line-2)}
+  .btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+
+  /* nav */
+  header{position:fixed;inset:0 0 auto 0;z-index:100;backdrop-filter:blur(14px);
+    background:rgba(5,7,10,.6);border-bottom:1px solid transparent;transition:border-color .3s,background .3s}
+  header.scrolled{border-bottom:1px solid var(--line);background:rgba(5,7,10,.85)}
+  nav{display:flex;align-items:center;justify-content:space-between;height:68px;
+    max-width:var(--maxw);margin:0 auto;padding:0 34px}
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--fd);font-weight:700;font-size:20px;letter-spacing:.05em}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 14px var(--cyan);animation:blink 2.6s ease-in-out infinite}
+  .brand small{font-family:var(--fm);font-size:10px;letter-spacing:2px;color:var(--grey-2);
+    font-weight:400;align-self:flex-end;padding-bottom:3px}
+  .nav-right{display:flex;align-items:center;gap:26px}
+  .status{font-family:var(--fm);font-size:11px;letter-spacing:1.5px;color:var(--grey);
+    display:inline-flex;align-items:center;gap:8px}
+  .status .d{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;padding:112px 0 40px;text-align:center;overflow:hidden}
+  .hero-bg{position:absolute;inset:0;z-index:0}
+  .hero-bg .grid{position:absolute;inset:0;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:64px 64px;opacity:.32;
+    mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,#000 25%,transparent 75%);
+    -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,#000 25%,transparent 75%)}
+  .hero-bg .glow{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);
+    width:1000px;height:620px;background:radial-gradient(ellipse at center,rgba(69,232,208,.13),transparent 66%)}
+  .hero .wrap{position:relative;z-index:3}
+  .hero h1{font-size:clamp(38px,6vw,68px);margin:22px auto 0;max-width:15ch}
+  .hero h1 em{font-style:normal;color:var(--cyan)}
+  .hero .sub{color:var(--grey);font-size:clamp(16px,2vw,19px);margin:22px auto 0;max-width:56ch}
+
+  /* 3D stage */
+  .stage{position:relative;height:clamp(360px,52vw,560px);margin:6px auto 0;max-width:900px;
+    perspective:1500px;perspective-origin:50% 44%;z-index:2}
+  .floor-glow{position:absolute;left:50%;bottom:12%;transform:translateX(-50%);
+    width:520px;height:120px;border-radius:50%;
+    background:radial-gradient(ellipse at center,rgba(69,232,208,.16),transparent 70%);
+    filter:blur(6px);z-index:1}
+  .shadow{position:absolute;left:50%;bottom:14%;transform:translateX(-50%) rotateX(78deg);
+    width:280px;height:90px;border-radius:50%;background:rgba(0,0,0,.6);filter:blur(26px);z-index:0}
+
+  .device-wrap{position:absolute;left:50%;top:46%;width:300px;height:175px;
+    margin:-87px 0 0 -150px;transform-style:preserve-3d;
+    transition:transform 1s cubic-bezier(.16,1,.3,1)}
+  .stage.exploded .device-wrap{transform:translateX(-130px)}
+  .device{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform;
+    transform:rotateX(-18deg) rotateY(-28deg)}
+  .slab{position:absolute;inset:0;transform-style:preserve-3d;
+    transition:transform 1s cubic-bezier(.16,1,.3,1)}
+  .face{position:absolute;left:50%;top:50%;overflow:hidden;backface-visibility:hidden}
+  /* face geometry (W=300 H=175 T=30) */
+  .f-front {width:300px;height:175px;border-radius:26px;transform:translate(-50%,-50%) translateZ(15px)}
+  .f-back  {width:300px;height:175px;border-radius:26px;transform:translate(-50%,-50%) rotateY(180deg) translateZ(15px)}
+  .f-right {width:30px;height:175px;transform:translate(-50%,-50%) rotateY(90deg) translateZ(150px)}
+  .f-left  {width:30px;height:175px;transform:translate(-50%,-50%) rotateY(-90deg) translateZ(150px)}
+  .f-top   {width:300px;height:30px;transform:translate(-50%,-50%) rotateX(90deg) translateZ(87.5px)}
+  .f-bottom{width:300px;height:30px;transform:translate(-50%,-50%) rotateX(-90deg) translateZ(87.5px)}
+
+  /* materials */
+  .shell .f-front,.shell .f-back{background:linear-gradient(152deg,#ffffff 0%,#eef1f4 46%,#d7dde3 100%);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.85),inset 0 -18px 30px rgba(120,130,140,.14)}
+  .shell .f-top{background:linear-gradient(180deg,#ffffff,#e7ebef)}
+  .shell .f-bottom{background:linear-gradient(0deg,#c4cbd2,#dbe1e6)}
+  .shell .f-left,.shell .f-right{background:linear-gradient(180deg,#e9edf0,#c9d0d7)}
+  .shell.base .f-back{background:linear-gradient(152deg,#2a323b,#1a2027)}
+
+  /* front graphics on top shell */
+  .wordmark{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+    text-align:center;font-family:var(--fd);font-weight:700;font-size:30px;letter-spacing:1px;
+    color:#2b3138;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+  .led{position:absolute;top:22px;right:26px;width:9px;height:9px;border-radius:50%;
+    background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:blink 2.4s infinite}
+  .vents{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:5px}
+  .vents i{width:34px;height:3px;border-radius:2px;background:#aab3bc}
+  .prongs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:14px}
+  .prongs i{width:8px;height:34px;border-radius:2px;background:#8b949d}
+  .prong-base{position:absolute;left:50%;top:50%;width:70px;height:60px;transform:translate(-50%,-50%);
+    border-radius:8px;background:linear-gradient(#39424c,#2a323b)}
+
+  /* PCB layer */
+  .pcb .f-front,.pcb .f-back{background:linear-gradient(150deg,#f2f5f7,#e2e7ec)}
+  .pcb .f-left,.pcb .f-right,.pcb .f-top,.pcb .f-bottom{background:linear-gradient(180deg,#d8ece7,#b9d6cf)}
+  .pcb-art{position:absolute;inset:0}
+  .pcb-art .trace{position:absolute;height:2px;background:var(--cyan);opacity:.7}
+  .pcb-art .node{position:absolute;width:14px;height:14px;border-radius:50%;background:#05070A;
+    border:2px solid var(--cyan);box-shadow:0 0 8px rgba(69,232,208,.5)}
+  .pcb-art .mcu{position:absolute;width:34px;height:34px;border-radius:4px;background:#0b1013;
+    border:1px solid var(--cyan)}
+  .pcb-art .ntag{position:absolute;font-family:var(--fm);font-size:8px;letter-spacing:1px;color:#3f6b63}
+
+  /* battery layer */
+  .batt .f-front,.batt .f-back{background:linear-gradient(150deg,#1a2027,#0d1216)}
+  .batt .f-left,.batt .f-right,.batt .f-top,.batt .f-bottom{background:linear-gradient(180deg,#20272f,#141a20)}
+  .cells{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:14px}
+  .cell{width:96px;height:44px;border-radius:6px;background:#05070A;border:1px solid #3a444e;
+    display:flex;align-items:center;padding:0 6px}
+  .cell b{display:block;height:26px;border-radius:3px;background:linear-gradient(90deg,var(--cyan),#2ba38f)}
+
+  /* exploded state */
+  .device.exploded .slab{transition:transform 1s cubic-bezier(.16,1,.3,1)}
+  .device .s1{transform:translateZ(45px)}
+  .device .s2{transform:translateZ(15px)}
+  .device .s3{transform:translateZ(-15px)}
+  .device .s4{transform:translateZ(-45px)}
+  .device.exploded .s1{transform:translateZ(210px)}
+  .device.exploded .s2{transform:translateZ(70px)}
+  .device.exploded .s3{transform:translateZ(-70px)}
+  .device.exploded .s4{transform:translateZ(-210px)}
+
+  /* stage controls + captions */
+  .stage-ui{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;
+    align-items:center;justify-content:center;gap:14px;pointer-events:none}
+  .toggle{pointer-events:auto;font-family:var(--fm);font-size:12px;letter-spacing:1.5px;color:var(--white);
+    background:rgba(8,11,15,.72);border:1px solid var(--line-2);border-radius:9px;padding:10px 18px;
+    cursor:pointer;display:inline-flex;gap:10px;align-items:center;transition:border-color .2s,color .2s}
+  .toggle:hover{border-color:var(--cyan);color:var(--cyan)}
+  .toggle .ic{width:14px;height:14px}
+  .hint{font-family:var(--fm);font-size:10.5px;letter-spacing:1.5px;color:var(--grey-2)}
+
+  /* exploded legend */
+  .legend{position:absolute;top:50%;right:2%;transform:translateY(-50%);z-index:6;
+    display:flex;flex-direction:column;gap:14px;opacity:0;pointer-events:none;transition:opacity .5s ease .3s;
+    text-align:left}
+  .stage.exploded .legend{opacity:1}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .ix{font-family:var(--fm);font-size:11px;color:var(--cyan);letter-spacing:1px;padding-top:2px;min-width:20px}
+  .leg .nm{display:block;font-family:var(--fd);font-weight:500;font-size:14px;color:var(--white)}
+  .leg .ds{display:block;font-family:var(--fm);font-size:10px;letter-spacing:.5px;color:var(--grey-2);margin-top:3px}
+  .stage.exploded .floor-glow,.stage.exploded .shadow{opacity:.35}
+
+  /* recent wins strip */
+  .wins{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:34px}
+  .win{font-family:var(--fm);font-size:11px;letter-spacing:1px;color:var(--grey);
+    border:1px solid var(--line);border-radius:999px;padding:8px 15px;display:inline-flex;align-items:center;gap:9px;
+    background:var(--panel)}
+  .win .d{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+  .win b{color:var(--white);font-weight:700}
+  .hero-cta{display:flex;justify-content:center;gap:14px;margin-top:30px;flex-wrap:wrap}
+
+  /* spec marquee bar */
+  .specbar{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg-2);
+    overflow:hidden;margin-top:64px}
+  .specbar .row{display:flex;gap:56px;padding:16px 0;white-space:nowrap;width:max-content;
+    animation:marq 32s linear infinite}
+  .specbar span{font-family:var(--fm);font-size:12px;letter-spacing:2px;color:var(--grey);
+    display:inline-flex;align-items:center;gap:56px}
+  .specbar span::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--cyan);opacity:.7}
+  @keyframes marq{to{transform:translateX(-50%)}}
+
+  /* generic section */
+  .section{padding:120px 0;position:relative}
+  .shead{max-width:640px;margin:0 auto 60px;text-align:center}
+  .shead h2{font-size:clamp(28px,4.2vw,46px);margin-top:18px}
+  .shead p{color:var(--grey);font-size:17px;margin-top:18px}
+
+  /* problem stats */
+  .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .stat{border:1px solid var(--line);border-radius:16px;padding:34px 28px;background:var(--panel);
+    text-align:center;transition:border-color .3s,transform .3s}
+  .stat:hover{border-color:var(--line-2);transform:translateY(-3px)}
+  .stat .big{font-family:var(--fd);font-weight:600;font-size:52px;line-height:1;letter-spacing:-.03em}
+  .stat .big.amber{color:var(--amber)}
+  .stat p{color:var(--grey);font-size:14.5px;margin-top:16px}
+  .stat .src{font-family:var(--fm);font-size:10px;letter-spacing:1px;color:var(--grey-2);
+    text-transform:uppercase;margin-top:14px}
+
+  /* how it works */
+  .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .fcard{border:1px solid var(--line);border-radius:16px;padding:32px 28px;background:var(--panel);position:relative}
+  .fcard .ix{font-family:var(--fm);font-size:12px;letter-spacing:2px;color:var(--cyan)}
+  .fcard .ic{width:38px;height:38px;color:var(--cyan);margin:22px 0 4px}
+  .fcard h3{font-size:21px;margin:10px 0 12px}
+  .fcard p{color:var(--grey);font-size:14.5px}
+
+  /* traction */
+  .traction{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .trow{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+  .tcell{padding:12px 34px;border-left:1px solid var(--line)}
+  .tcell:first-child{border-left:0;padding-left:0}
+  .tcell .k{font-family:var(--fm);font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+  .tcell .v{font-family:var(--fd);font-weight:600;font-size:30px;margin:12px 0 8px;line-height:1.05}
+  .tcell p{color:var(--grey);font-size:14px}
+
+  /* market compact */
+  .mkt{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;text-align:center}
+  .mcell{border:1px solid var(--line);border-radius:16px;padding:36px 24px;background:var(--panel);position:relative;overflow:hidden}
+  .mcell .bar{position:absolute;left:0;bottom:0;height:100%;background:var(--cyan-dim);z-index:0}
+  .mcell .v{font-family:var(--fd);font-weight:600;font-size:44px;position:relative;z-index:1;letter-spacing:-.02em}
+  .mcell.som .v{color:var(--cyan)}
+  .mcell .k{font-family:var(--fm);font-size:11px;letter-spacing:2px;color:var(--grey-2);
+    text-transform:uppercase;position:relative;z-index:1;margin-top:10px}
+  .mcell p{color:var(--grey);font-size:13px;margin-top:10px;position:relative;z-index:1}
+  .mkt-note{text-align:center;color:var(--grey);font-size:15px;margin-top:34px}
+  .mkt-note b{color:var(--white)}
+
+  /* final cta */
+  .cta{position:relative;text-align:center;padding:150px 0;overflow:hidden}
+  .cta .glow{position:absolute;left:50%;bottom:-30%;transform:translateX(-50%);width:900px;height:520px;
+    background:radial-gradient(ellipse at center,rgba(69,232,208,.15),transparent 66%)}
+  .cta .grid{position:absolute;inset:0;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:64px 64px;opacity:.28;
+    mask-image:radial-gradient(ellipse 60% 60% at 50% 60%,#000,transparent 72%);
+    -webkit-mask-image:radial-gradient(ellipse 60% 60% at 50% 60%,#000,transparent 72%)}
+  .cta .wrap{position:relative;z-index:2}
+  .cta h2{font-size:clamp(34px,5.4vw,60px);max-width:20ch;margin:22px auto 0}
+  .cta p{color:var(--grey);font-size:18px;max-width:52ch;margin:22px auto 0}
+  .cta .btn{margin-top:38px;padding:15px 30px;font-size:16px}
+
+  /* footer */
+  footer{border-top:1px solid var(--line);padding:50px 0 40px}
+  .fgrid{display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap}
+  .fgrid p{color:var(--grey-2);font-size:13.5px;margin-top:14px;max-width:280px}
+  .flinks{display:flex;gap:56px;flex-wrap:wrap}
+  .fcol h4{font-family:var(--fm);font-size:11px;letter-spacing:2px;color:var(--grey-2);
+    text-transform:uppercase;margin-bottom:14px;font-weight:400}
+  .fcol a{display:block;color:var(--grey);font-size:14px;padding:5px 0;transition:color .2s}
+  .fcol a:hover{color:var(--cyan)}
+  .fbase{display:flex;justify-content:space-between;margin-top:44px;padding-top:24px;
+    border-top:1px solid var(--line);flex-wrap:wrap;gap:12px}
+  .fbase span{font-family:var(--fm);font-size:11px;letter-spacing:1px;color:var(--grey-2)}
+
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+  @media(max-width:900px){
+    .stats3,.flow,.mkt{grid-template-columns:1fr}
+    .trow{grid-template-columns:1fr}
+    .tcell{border-left:0;border-top:1px solid var(--line);padding:22px 0}
+    .tcell:first-child{border-top:0}
+    .section{padding:88px 0}
+    .status{display:none}
+  }
+  @media(max-width:560px){
+    .wrap,nav{padding-left:20px;padding-right:20px}
+    .stage{height:360px}
+    .device-wrap{transform:scale(.72)}
+    .stage.exploded .device-wrap{transform:scale(.5)}
+    .legend{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important}
+    html{scroll-behavior:auto}
+    .device,.slab{transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <nav>
+    <a class="brand" href="#top"><span class="dot"></span>VEX <small>PROJECT&nbsp;VEX</small></a>
+    <div class="nav-right">
+      <span class="status"><span class="d"></span>PRE-SEED · RAISING</span>
+      <button class="btn btn-primary book">Book a call
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<span id="top"></span>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="hero-bg"><div class="grid"></div><div class="glow"></div></div>
+  <div class="wrap">
+    <span class="eyebrow">Predictive mould detection · UK housing</span>
+    <h1>Predict and detect mould <em>before</em> major damage.</h1>
+    <p class="sub">The Vex is a battery-powered sensor that reads the conditions mould needs to grow, warning landlords weeks before it ever appears and keeping their properties compliant with UK housing law.</p>
+  </div>
+
+  <!-- 3D STAGE -->
+  <div class="stage" id="stage">
+    <div class="shadow"></div>
+    <div class="floor-glow"></div>
+
+    <div class="device-wrap" id="deviceWrap">
+    <div class="device" id="device">
+      <!-- S1 · TOP SHELL -->
+      <div class="slab s1 shell">
+        <div class="face f-front"><div class="wordmark">VEX&nbsp;0.5</div><span class="led"></span></div>
+        <div class="face f-back"></div>
+        <div class="face f-top"><div class="vents"><i></i><i></i><i></i></div></div>
+        <div class="face f-bottom"></div>
+        <div class="face f-left"></div>
+        <div class="face f-right"></div>
+      </div>
+      <!-- S2 · PCB -->
+      <div class="slab s2 pcb">
+        <div class="face f-front"><div class="pcb-art">
+          <span class="mcu" style="left:34px;top:70px"></span>
+          <span class="trace" style="left:60px;top:82px;width:56px"></span>
+          <span class="trace" style="left:110px;top:60px;width:80px"></span>
+          <span class="trace" style="left:150px;top:100px;width:70px"></span>
+          <span class="node" style="left:120px;top:76px"></span>
+          <span class="node" style="left:170px;top:76px"></span>
+          <span class="node" style="left:220px;top:76px"></span>
+          <span class="ntag" style="left:112px;top:96px">TMP</span>
+          <span class="ntag" style="left:162px;top:96px">HUM</span>
+          <span class="ntag" style="left:214px;top:96px">GAS</span>
+        </div></div>
+        <div class="face f-back"></div>
+        <div class="face f-top"></div><div class="face f-bottom"></div>
+        <div class="face f-left"></div><div class="face f-right"></div>
+      </div>
+      <!-- S3 · BATTERY -->
+      <div class="slab s3 batt">
+        <div class="face f-front"><div class="cells">
+          <div class="cell"><b style="width:60px"></b></div>
+          <div class="cell"><b style="width:74px"></b></div>
+        </div></div>
+        <div class="face f-back"></div>
+        <div class="face f-top"></div><div class="face f-bottom"></div>
+        <div class="face f-left"></div><div class="face f-right"></div>
+      </div>
+      <!-- S4 · BASE + PLUG -->
+      <div class="slab s4 shell base">
+        <div class="face f-front"></div>
+        <div class="face f-back"><div class="prong-base"></div><div class="prongs"><i></i><i></i></div></div>
+        <div class="face f-top"></div><div class="face f-bottom"></div>
+        <div class="face f-left"></div><div class="face f-right"></div>
+      </div>
+    </div>
+    </div>
+
+    <!-- exploded legend -->
+    <div class="legend">
+      <div class="leg"><span class="ix">01</span><span><span class="nm">Top shell</span><span class="ds">SEALED ABS · VENT ARRAY</span></span></div>
+      <div class="leg"><span class="ix">02</span><span><span class="nm">Custom PCB</span><span class="ds">TEMP · HUMIDITY · GAS</span></span></div>
+      <div class="leg"><span class="ix">03</span><span><span class="nm">Battery pack</span><span class="ds">Li-ion · MULTI-YEAR</span></span></div>
+      <div class="leg"><span class="ix">04</span><span><span class="nm">Base + plug</span><span class="ds">NO-INSTALL MOUNT</span></span></div>
+    </div>
+
+    <div class="stage-ui">
+      <button class="toggle" id="explodeBtn">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        <span class="lbl">EXPLODE</span>
+      </button>
+      <span class="hint">DRAG&nbsp;OR&nbsp;HOVER&nbsp;TO&nbsp;ROTATE</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero-cta">
+      <button class="btn btn-primary book">Book a call
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <a href="#how" class="btn btn-ghost">How it works</a>
+    </div>
+    <div class="wins">
+      <span class="win"><span class="d"></span><b>£3,000</b>&nbsp;development grant</span>
+      <span class="win"><span class="d"></span>Invited to&nbsp;<b>Y&nbsp;Combinator Startup&nbsp;School&nbsp;’26</b></span>
+      <span class="win"><span class="d"></span>In talks with&nbsp;<b>property owners &amp; managers</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- spec marquee -->
+<div class="specbar">
+  <div class="row">
+    <span>TEMPERATURE</span><span>HUMIDITY</span><span>GAS SENSING</span><span>ON-DEVICE RISK MODEL</span><span>MULTI-YEAR BATTERY</span><span>ZERO INSTALL</span><span>TENANT APP</span><span>LANDLORD DASHBOARD</span>
+    <span>TEMPERATURE</span><span>HUMIDITY</span><span>GAS SENSING</span><span>ON-DEVICE RISK MODEL</span><span>MULTI-YEAR BATTERY</span><span>ZERO INSTALL</span><span>TENANT APP</span><span>LANDLORD DASHBOARD</span>
+  </div>
+</div>
+
+<!-- ================= PROBLEM ================= -->
+<section class="section" id="problem">
+  <div class="wrap">
+    <div class="shead">
+      <span class="eyebrow" style="justify-content:center">The problem</span>
+      <h2>Landlords can't see mould coming.</h2>
+      <p>Inspections run every 6 to 12 months. By the time mould is visible, the health impact, the property damage and the liability are already done.</p>
+    </div>
+    <div class="stats3">
+      <div class="stat"><div class="big amber">1 in 5</div><p>UK homes are affected by damp or mould, over 9 million rental properties.</p><div class="src">English Housing Survey</div></div>
+      <div class="stat"><div class="big">10 days</div><p>Awaab's Law gives social landlords 10 working days to investigate, and 5 to fix.</p><div class="src">Awaab's Law · 2025</div></div>
+      <div class="stat"><div class="big amber">10-50×</div><p>The cost jump from a £200 early fix to £2k to £10k+ crisis remediation.</p><div class="src">Renters' Rights Act 2025</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="section" id="how" style="padding-top:0">
+  <div class="wrap">
+    <div class="shead">
+      <span class="eyebrow" style="justify-content:center">How it works</span>
+      <h2>Sense. Predict. Act.</h2>
+    </div>
+    <div class="flow">
+      <div class="fcard">
+        <div class="ix">01 / SENSE</div>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
+        <h3>It reads the room</h3>
+        <p>Every 20 minutes, each Vex captures temperature, humidity and gas, the signals that precede mould.</p>
+      </div>
+      <div class="fcard">
+        <div class="ix">02 / PREDICT</div>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17l5-6 4 3 5-8 4 5"/><path d="M3 21h18"/></svg>
+        <h3>Our model scores risk</h3>
+        <p>A proprietary algorithm turns readings into a live, room-level mould-risk score that sharpens over time.</p>
+      </div>
+      <div class="fcard">
+        <div class="ix">03 / ACT</div>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+        <h3>Everyone's alerted</h3>
+        <p>Tenants get guidance in-app. Landlords see rising-risk units on one dashboard, with timestamped evidence that keeps them compliant with the law and clear of heavy fines.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TRACTION ================= -->
+<section class="section traction" id="traction">
+  <div class="wrap">
+    <div class="shead" style="margin-bottom:44px">
+      <span class="eyebrow" style="justify-content:center">Where we are</span>
+      <h2>Early, and moving fast.</h2>
+    </div>
+    <div class="trow">
+      <div class="tcell">
+        <div class="k">Funded</div>
+        <div class="v">£3,000 grant</div>
+        <p>Won to develop and prototype the Vex device.</p>
+      </div>
+      <div class="tcell">
+        <div class="k">Selected</div>
+        <div class="v">YC Startup School ’26</div>
+        <p>Invited to Y&nbsp;Combinator's 2026 Startup School cohort.</p>
+      </div>
+      <div class="tcell">
+        <div class="k">Pipeline</div>
+        <div class="v">In active talks</div>
+        <p>Conversations underway with property owners, managers, researchers and lawyers.</p>
+      </div>
+    </div>
+    <p class="mkt-note" style="margin-top:44px">Built around UK mould law, so landlords stay compliant and avoid heavy fines.</p>
+  </div>
+</section>
+
+<!-- ================= MARKET ================= -->
+<section class="section" id="market">
+  <div class="wrap">
+    <div class="shead">
+      <span class="eyebrow" style="justify-content:center">The opportunity</span>
+      <h2>A hardware market in the billions.</h2>
+    </div>
+    <div class="mkt">
+      <div class="mcell"><span class="bar" style="width:100%"></span><div class="v">£10B</div><div class="k">TAM</div><p>UK &amp; EU housing mould &amp; air-quality monitoring.</p></div>
+      <div class="mcell"><span class="bar" style="width:52%"></span><div class="v">£1.1B</div><div class="k">SAM</div><p>UK social housing + private rental with damp concern.</p></div>
+      <div class="mcell som"><span class="bar" style="width:20%"></span><div class="v">£17.5M</div><div class="k">SOM · 5 YR</div><p>Realistic capture across Yorkshire housing.</p></div>
+    </div>
+    <p class="mkt-note">Hardware, with <b>SaaS margins</b> on top.</p>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="cta" id="book">
+  <div class="grid"></div><div class="glow"></div>
+  <div class="wrap">
+    <span class="eyebrow" style="justify-content:center">Healthy homes, by default</span>
+    <h2>Break the mould.</h2>
+    <p>We're raising to put Vex into its first thousand homes. If that's a future you want in on, book a slot.</p>
+    <button class="btn btn-primary book">Book a call
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <a class="brand" href="#top"><span class="dot"></span>VEX <small>PROJECT&nbsp;VEX</small></a>
+        <p><b style="color:var(--white);font-weight:600">Break the mould.</b> Predictive mould detection for UK housing. Making healthy homes the standard.</p>
+      </div>
+      <div class="flinks">
+        <div class="fcol"><h4>Product</h4>
+          <a href="#how">How it works</a><a href="#market">Market</a><a href="#traction">Traction</a>
+        </div>
+        <div class="fcol"><h4>Connect</h4>
+          <a href="https://www.instagram.com/projectvex.co.uk/" target="_blank" rel="noopener">Instagram</a>
+          <a href="#book" class="book-link">Book a call</a>
+          <a href="mailto:jemidmer1@sheffield.ac.uk">Email us</a>
+        </div>
+      </div>
+    </div>
+    <div class="fbase"><span>© 2026 PROJECT VEX</span><span>MADE IN SHEFFIELD 🇬🇧</span></div>
+  </div>
+</footer>
+
+<script>
+  /* ===== paste your Calendly link between the quotes ===== */
+  const CALENDLY_URL = "https://calendly.com/admin-projectvex/30min";
+  /* ======================================================= */
+  document.querySelectorAll('.book, .book-link').forEach(el=>{
+    el.addEventListener('click',e=>{
+      if(CALENDLY_URL.indexOf('http')===0){e.preventDefault();window.open(CALENDLY_URL,'_blank','noopener');}
+      else if(!el.classList.contains('book-link')){e.preventDefault();document.getElementById('book').scrollIntoView({behavior:'smooth'});}
+    });
+  });
+
+  const hdr=document.getElementById('hdr');
+  addEventListener('scroll',()=>hdr.classList.toggle('scrolled',scrollY>12));
+
+  // ---- 3D device rotation ----
+  const stage=document.getElementById('stage');
+  const device=document.getElementById('device');
+  const btn=document.getElementById('explodeBtn');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let ry=-28, rx=-18, targetPX=0, targetPY=0, px=0, py=0;
+  let spinning=!reduce, exploded=false, dragging=false, lastX=0, raf=null;
+
+  function apply(){ device.style.transform=`rotateX(${rx+py}deg) rotateY(${ry+px}deg)`; }
+  function loop(){ if(!spinning){raf=null;return;}
+    ry=(ry+0.2)%360;
+    px+=(targetPX-px)*0.06; py+=(targetPY-py)*0.06;
+    apply(); raf=requestAnimationFrame(loop);
+  }
+  function startSpin(){ if(!raf && spinning) raf=requestAnimationFrame(loop); }
+  if(!reduce) startSpin(); else apply();
+
+  // mouse parallax
+  stage.addEventListener('mousemove',e=>{
+    if(exploded||dragging) return;
+    const r=stage.getBoundingClientRect();
+    targetPX=((e.clientX-r.left)/r.width-0.5)*26;
+    targetPY=-((e.clientY-r.top)/r.height-0.5)*14;
+  });
+  stage.addEventListener('mouseleave',()=>{targetPX=0;targetPY=0;});
+
+  // drag to rotate
+  stage.addEventListener('pointerdown',e=>{ if(exploded)return; dragging=true; lastX=e.clientX; spinning=false; stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener('pointermove',e=>{ if(!dragging)return; ry+=(e.clientX-lastX)*0.4; lastX=e.clientX; apply(); });
+  function endDrag(){ if(!dragging)return; dragging=false; if(!exploded&&!reduce){spinning=true;startSpin();} }
+  stage.addEventListener('pointerup',endDrag); stage.addEventListener('pointercancel',endDrag);
+
+  // explode toggle
+  function setExploded(on){
+    exploded=on;
+    device.classList.toggle('exploded',on);
+    stage.classList.toggle('exploded',on);
+    btn.querySelector('.lbl').textContent = on?'ASSEMBLE':'EXPLODE';
+    if(on){
+      spinning=false; targetPX=0; targetPY=0; px=0; py=0;
+      device.style.transition='transform 1s cubic-bezier(.16,1,.3,1)';
+      rx=-20; ry=-34; apply();
+    }else{
+      rx=-18; ry=-34;
+      setTimeout(()=>{ device.style.transition=''; if(!reduce){spinning=true;startSpin();} },700);
+    }
+  }
+  btn.addEventListener('click',()=>setExploded(!exploded));
+</script>
+</body>
+</html>
